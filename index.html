@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待辦事項管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, select, button {
+            margin-top: 5px;
+        }
+        #todos, #response {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .todo-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>待辦事項管理</h1>
+
+    <!-- 新增待辦事項表單 -->
+    <h2>新增待辦事項</h2>
+    <form id="addTodoForm">
+        <label for="student_id_add">學生ID:</label>
+        <input type="text" id="student_id_add" name="student_id_add" required>
+
+        <label for="task_add">任務:</label>
+        <input type="text" id="task_add" name="task_add" required>
+
+        <button type="submit">新增任務</button>
+    </form>
+
+    <!-- 查看待辦事項表單 -->
+    <h2>查看待辦事項</h2>
+    <form id="viewTodoForm">
+        <label for="student_id_view">學生ID:</label>
+        <input type="text" id="student_id_view" name="student_id_view" required>
+
+        <button type="submit">查看待辦事項</button>
+    </form>
+
+    <!-- 更新待辦事項表單 -->
+    <h2>更新待辦事項</h2>
+    <form id="updateTodoForm">
+        <label for="todo_id">待辦事項ID:</label>
+        <input type="number" id="todo_id" name="todo_id" required>
+
+        <label for="student_id">學生ID:</label>
+        <input type="text" id="student_id" name="student_id" required>
+
+        <label for="task">任務:</label>
+        <input type="text" id="task" name="task" required>
+
+        <label for="completed">是否已完成:</label>
+        <select id="completed" name="completed" required>
+            <option value="true">是</option>
+            <option value="false">否</option>
+        </select>
+
+        <button type="submit">更新任務</button>
+    </form>
+
+    <!-- 刪除待辦事項表單 -->
+    <h2>刪除待辦事項</h2>
+    <form id="deleteTodoForm">
+        <label for="todo_id_delete">待辦事項ID:</label>
+        <input type="number" id="todo_id_delete" name="todo_id_delete" required>
+
+        <label for="student_id_delete">學生ID:</label>
+        <input type="text" id="student_id_delete" name="student_id_delete" required>
+
+        <button type="submit">刪除任務</button>
+    </form>
+
+    <!-- 顯示回應結果 -->
+    <div id="response" style="display: none;">
+        <h3>回應結果:</h3>
+        <p id="responseMessage"></p>
+    </div>
+
+    <!-- 顯示待辦事項 -->
+    <div id="todos" style="display: none;">
+        <h3>待辦事項列表:</h3>
+        <div id="todoList"></div>
+    </div>
+
+    <script>
+        // 新增待辦事項的處理邏輯
+        document.getElementById('addTodoForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const studentId = document.getElementById('student_id_add').value;
+            const task = document.getElementById('task_add').value;
+
+            const requestData = {
+                student_id: studentId,
+                task: task
+            };
+
+            try {
+                const response = await fetch('https://nfutest.pythonanywhere.com/todos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('response').style.display = 'block';
+                    document.getElementById('responseMessage').innerHTML = `任務已新增!<br>ID: ${data.id}<br>任務: ${data.task}<br>已完成: ${data.completed}`;
+                } else {
+                    document.getElementById('response').style.display = 'block';
+                    document.getElementById('responseMessage').innerHTML = '發生錯誤，請再試一次。';
+                }
+            } catch (error) {
+                console.error('錯誤:', error);
+                document.getElementById('response').style.display = 'block';
+                document.getElementById('responseMessage').innerHTML = '發生錯誤，請再試一次。';
+            }
+        });
+
+        // 查看待辦事項的處理邏輯
+        document.getElementById('viewTodoForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const studentId = document.getElementById('student_id_view').value;
+
+            try {
+                const response = await fetch(`https://nfutest.pythonanywhere.com/todos?student_id=${studentId}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const todos = data.todos;
+
+                    const todoListDiv = document.getElementById('todoList');
+                    todoListDiv.innerHTML = '';
+
+                    if (todos.length > 0) {
+                        todos.forEach(todo => {
+                            const todoItem = document.createElement('div');
+                            todoItem.classList.add('todo-item');
+                            todoItem.innerHTML = `
+                                <strong>任務ID: ${todo.id}</strong><br>
+                                任務: ${todo.task}<br>
+                                已完成: ${todo.completed ? '是' : '否'}
+                            `;
+                            todoListDiv.appendChild(todoItem);
+                        });
+                    } else {
+                        todoListDiv.innerHTML = '此學生無待辦事項。';
+                    }
+
+                    document.getElementById('todos').style.display = 'block';
+                } else {
+                    alert('無法獲取待辦事項，請稍後再試。');
+                }
+            } catch (error) {
+                console.error('錯誤:', error);
+                alert('發生錯誤，請再試一次。');
+            }
+        });
+
+        // 更新待辦事項的處理邏輯
+        document.getElementById('updateTodoForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const todoId = document.getElementById('todo_id').value;
+            const studentId = document.getElementById('student_id').value;
+            const task = document.getElementById('task').value;
+            const completed = document.getElementById('completed').value === 'true';  // 轉換為布林值
+
+            const requestData = {
+                student_id: studentId,
+                task: task,
+                completed: completed
+            };
+
+            try {
+                const response = await fetch(`https://nfutest.pythonanywhere.com/todos/${todoId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('response').style.display = 'block';
+                    document.getElementById('responseMessage').innerHTML = `
+                        任務已更新!<br>
+                        ID: ${data.id}<br>
+                        任務: ${data.task}<br>
+                        已完成: ${data.completed ? '是' : '否'}
+                    `;
+                } else {
+                    document.getElementById('response').style.display = 'block';
+                    document.getElementById('responseMessage').innerHTML = '更新失敗，請再試一次。';
+                }
+            } catch (error) {
+                console.error('錯誤:', error);
+                document.getElementById('response').style.display = 'block';
+                document.getElementById('responseMessage').innerHTML = '發生錯誤，請再試一次。';
+            }
+        });
+
+        // 刪除待辦事項的處理邏輯
+        document.getElementById('deleteTodoForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const todoId = document.getElementById('todo_id_delete').value;
+            const studentId = document.getElementById('student_id_delete').value;
+
+            const requestData = {
+                student_id: studentId
+            };
+
+            try {
+                const response = await fetch(`https://nfutest.pythonanywhere.com/todos/${todoId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('response').style.display = 'block';
+                    document.getElementById('responseMessage').innerHTML = `任務已刪除!<br>訊息: ${data.message}`;
+                } else {
+                    document.getElementById('response').style.display = 'block';
+                    document.getElementById('responseMessage').innerHTML = '刪除失敗，請再試一次。';
+                }
+            } catch (error) {
+                console.error('錯誤:', error);
+                document.getElementById('response').style.display = 'block';
+                document.getElementById('responseMessage').innerHTML = '發生錯誤，請再試一次。';
+            }
+        });
+    </script>
+</body>
+</html>
